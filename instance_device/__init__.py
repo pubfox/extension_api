@@ -34,7 +34,7 @@ class Devices():
 			if self.dev == -1: return -1
 			cmd = "tc -s qdisc del dev " + str(self.dev) + " root"
 			os.system (cmd)
-			netspeed = int(netspeed) * 2
+			netspeed = int(netspeed) * 1.5
 			cmd = "tc -s qdisc add dev " + str(self.dev) + " root tbf rate " + str(netspeed) + "Mbit latency 50ms burst 10000 mpu 64 mtu 150000"
 			os.system (cmd)
 			#self.normal_return()
