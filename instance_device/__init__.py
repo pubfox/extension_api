@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import libvirt
+import xml.etree.cElementTree as ET
 
 
 class Devices():
@@ -22,11 +23,26 @@ class Devices():
 			except libvirt.libvirtError, e:
 				return -1
 			self.xml = dom.XMLDesc(0)
-			for line in self.xml.split('\n'):
-				if re.search ("mac address", line): imac = line.split('=')[1].split('\'')[1]
+			#for line in self.xml.split('\n'):
+			#	if re.search ("mac address", line): imac = line.split('=')[1].split('\'')[1]
+			imac = self._get_imac(self.xml)
 			for mac, dev in self.macdict.items():
 				if mac.split(':')[-5:] == imac.split(':')[-5:]:
 					return self.macdict[mac]
+			return -1
+		
+		def _get_imac(self, xml):
+			bridge = 'br100'
+			for el in ET.fromstring(xml).findall('devices/interface'):
+				found = False
+				for ch in el.getchildren():
+					if ch.tag == 'source' and ch.get('bridge') == bridge:
+						found = True
+						break
+				if not found: continue
+				for ch in el.getchildren():
+					if ch.tag == 'mac':
+						return ch.get('address')
 			return None
 		
 		def strictNetspeed (self, ins_id, netspeed):
@@ -36,7 +52,7 @@ class Devices():
 			os.system (cmd)
 			netspeed = int(netspeed)
 			if netspeed == 0:
-				netspeed = 0.00001
+				netspeed = 0.01
 			else:
 				netspeed = netspeed * 1.5
 			cmd = "tc -s qdisc add dev " + str(self.dev) + " root tbf rate " + str(netspeed) + "Mbit latency 50ms burst 10000 mpu 64 mtu 150000"
@@ -53,3 +69,7 @@ class Devices():
 		
 		def error_return(self):
 			return "nok"
+
+if __name__ == '__main__':
+	netdev = Devices ()
+	print netdev.strictNetspeed('b22e35c4-26dc-44c8-a9e5-a99d15916fee', 3)
